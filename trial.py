@@ -159,7 +159,7 @@ def trial_(i, win, df, slots, pos, clk, sound, slots_point):
             #slots_gain.draw(reward)
             win.flip()
             sound[1].play()
-            core.wait(1)
+            core.wait(1.2)
             sound[1].stop()
             state = 'quit'
         else:

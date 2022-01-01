@@ -19,37 +19,68 @@ def num2list(x, max_len=3):
             return [-1]+s
 
 
-def generate(payoff_dists,trial=24
-             ):
+def generate_(payoff_mean, payoff_std):
     """
     Generate exp data.
     Returns the DataFrame contains the stimulus
 
     Parameters
     ----------
-    payoff_dists : list of 2-tuples of length `K`
-                The parameters the distributions over payoff values for each of the
-                `n` arms. Specifically, ``payoffs[k]`` is a tuple of (mean, std)
-                for the Gaussian distribution over payoffs associated with arm `k`.
-    trial : int
-        number of trials per condition
+    payoff_mean: np.array
+
+    payoff_std : np.array
+
     Returns
     -------
     df : pd.DataFrame
     """
-    n_arms = len(payoff_dists)
-    arm_evs = np.array([mu for (mu, std) in payoff_dists])
-    arm_std = np.array([std for (mu, std) in payoff_dists])
-    best_ev = np.max(arm_evs)
-    best_arm = np.argmax(arm_evs)
+    assert payoff_mean.shape == payoff_std.shape
+    n_arms = len(payoff_mean)
+    trial = len(payoff_mean[0])
     df = pd.DataFrame()
-    df['n_arms'] = [n_arms]*trial
+    df['n_arms'] = [n_arms] * trial
     pos = np.repeat([['L', 'M', 'R']], trial, axis=0)
     list(map(np.random.shuffle, pos))
+    s = np.arange(n_arms)
+    np.random.shuffle(s)
     for i in range(n_arms):
-        df['arm%s_mean'%i] = [arm_evs[i]]*trial
-        df['arm%s_std'%i] = [arm_std[i]]*trial
-        df['arm%s_pos'%i] = pos[:, i]
+        df['arm%s_mean' % i] = payoff_mean[s[i]]
+        df['arm%s_std' % i] = payoff_std[s[i]]
+        df['arm%s_pos' % i] = pos[:, s[i]]
+    return df
+
+
+def generate():
+    mu0 = np.concatenate((
+        9 * np.ones((1, 20)),
+        -9 * np.ones((1, 20)),
+        0 * np.ones((1, 20))
+    ))
+    mu1 = np.concatenate((
+        np.concatenate((np.array([9] * 7), np.linspace(9, -9, 13))).reshape(1, -1),
+        -9 * np.ones((1, 20)),
+        0 * np.ones((1, 20))
+    ))
+    mu2 = np.concatenate((
+        np.reshape([9] * 7 + [-4] * 13, (1, -1)),
+        -9 * np.ones((1, 20)),
+        0 * np.ones((1, 20))
+    ))
+    mu3 = np.concatenate((
+        9 * np.ones((1, 20)),
+        -9 * np.ones((1, 20)),
+        np.reshape([0] * 7 + [13] * 13, (1, -1)),
+    ))
+    std = 6 * np.ones((3, 20))
+
+    df0 = generate_(mu0, std)
+    df1 = generate_(mu1, std)
+    df2 = generate_(mu2, std)
+    df3 = generate_(mu3, std)
+
+    df = pd.concat([df0, df1, df2, df3])
+    df.index = range(len(df))
+    df['block'] = df.index.values // len(mu0[0])
     return df
 
 

@@ -25,7 +25,8 @@ w, h = resolution.split('*')
 w = int(w)
 h = int(h)
 a = w/1280
-df = hp.generate([[-8, 4], [0, 4], [8, 4]],trial=24)
+
+df = hp.generate()
 win = visual.Window(size=(w, h), fullscr=True, units='pix')
 
 fix = visual.ImageStim(win, image='images/fix.png', size=720*a/20)
@@ -52,14 +53,31 @@ slots_point = hp.PointTotal(win, assets, units=a)
 #slots_gain = hp.PointWin(win, assets, units=a)
 clk = core.Clock()
 clk.reset()
-
-for i in range(len(df )):
+results = {
+    'arm':[],
+    'arm_pos':[],
+    'reward':[],
+    'rt':[]
+}
+for i in range(len(df)):
+    if i in [20, 40, 60]:
+        win.flip()
+        core.wait(2.2)
     re = tr.trial_(i, win, df, slots, pos, clk, [v_sound, v_gain], slots_point)
-    print(re)
+    print(i, re)
+    results['arm'].append(re['arm'])
+    results['arm_pos'].append(re['arm_pos'])
+    results['reward'].append(re['reward'])
+    results['rt'].append(re['rt'])
     slots_point.draw()
     #slots_gain.draw(slots_gain.points)
     win.flip()
-    core.wait(1)
+    core.wait(0.8)
 
+df['arm']=results['arm']
+df['arm_pos']=results['arm_pos']
+df['reward']=results['reward']
+df['rt']=results['rt']
+df.to_csv('data/exp_%s_%s.csv' % (name, time.strftime("%y-%m-%d-%H-%M")))
 win.close()
 core.quit()
