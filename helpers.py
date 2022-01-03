@@ -19,7 +19,12 @@ def num2list(x, max_len=3):
             return [-1]+s
 
 
-def generate_(payoff_mean, payoff_std):
+def get_stars(points, vmax, vmin):
+    p = np.clip(points, vmin, vmax)
+    return int(np.round(5*((p-vmin)/(vmax-vmin))**0.7))
+
+
+def generate_(payoff_mean, payoff_std, ban='Low', drift=0):
     """
     Generate exp data.
     Returns the DataFrame contains the stimulus
@@ -29,6 +34,10 @@ def generate_(payoff_mean, payoff_std):
     payoff_mean: np.array
 
     payoff_std : np.array
+
+    ban: str
+
+    drift: float
 
     Returns
     -------
@@ -47,40 +56,72 @@ def generate_(payoff_mean, payoff_std):
         df['arm%s_mean' % i] = payoff_mean[s[i]]
         df['arm%s_std' % i] = payoff_std[s[i]]
         df['arm%s_pos' % i] = pos[:, s[i]]
+        if payoff_mean[s[i]][0] == min(payoff_mean[:, 0]):
+            i_min = i
+        elif payoff_mean[s[i]][0] == max(payoff_mean[:, 0]):
+            i_max = i
+    df['drift'] = drift
+    if ban == 'Low':
+        s_ = np.repeat(s[s != i_min], 2)
+        np.random.shuffle(s_)
+        df['arm'] = list(s_) + [-1] * (len(df) - len(s_))
+        df['ban'] = [ban] * len(s_) + [None] * (len(df) - len(s_))
+        df['ban_arm'] = i_min
+    elif ban == 'High':
+        s_ = np.repeat(s[s != i_max], 2)
+        np.random.shuffle(s_)
+        df['arm'] = list(s_) + [-1] * (len(df) - len(s_))
+        df['ban'] = [ban] * len(s_) + [None] * (len(df) - len(s_))
+        df['ban_arm'] = i_max
     return df
 
 
 def generate():
+    '''
+    Generate data:
+    type 0, control;
+    type 1, best option slowly decrease, test stickness;
+    type 2, abrupt change of the best option to second best;
+    type 3, abrupt change of the second best option to the best;
+    '''
     mu0 = np.concatenate((
-        9 * np.ones((1, 20)),
-        -9 * np.ones((1, 20)),
-        0 * np.ones((1, 20))
+    10*np.ones((1, 20)),
+    -10*np.ones((1, 20)),
+    0*np.ones((1, 20))
     ))
     mu1 = np.concatenate((
-        np.concatenate((np.array([9] * 7), np.linspace(9, -9, 13))).reshape(1, -1),
-        -9 * np.ones((1, 20)),
-        0 * np.ones((1, 20))
+        np.concatenate((np.array([10]*7), np.round(np.linspace(10, -11, 13)))).reshape(1, -1),
+        -10*np.ones((1, 20)),
+        0*np.ones((1, 20))
     ))
     mu2 = np.concatenate((
-        np.reshape([9] * 7 + [-4] * 13, (1, -1)),
-        -9 * np.ones((1, 20)),
-        0 * np.ones((1, 20))
+        np.reshape([10]*10+[-5]*10, (1, -1)),
+        -10*np.ones((1, 20)),
+        0*np.ones((1, 20))
     ))
     mu3 = np.concatenate((
-        9 * np.ones((1, 20)),
-        -9 * np.ones((1, 20)),
-        np.reshape([0] * 7 + [13] * 13, (1, -1)),
+        10*np.ones((1, 20)),
+        -10*np.ones((1, 20)),
+        np.reshape([0]*10+[15]*10, (1, -1)),
     ))
-    std = 6 * np.ones((3, 20))
-
-    df0 = generate_(mu0, std)
-    df1 = generate_(mu1, std)
-    df2 = generate_(mu2, std)
-    df3 = generate_(mu3, std)
-
-    df = pd.concat([df0, df1, df2, df3])
+    mu = [mu0, mu1, mu2, mu3]
+    std = 4*np.ones((3, 20))
+    df = []
+    HL = ['Low', 'High'] * 2
+    HL_ = []
+    for i in range(3):
+        np.random.shuffle(HL)
+        HL_ += HL
+    for i, s, u in zip([0, 1, 2, 3]*3, HL_, np.repeat([-10, 0, 10], 4)):
+        dfi = generate_(mu[i], std, s, u)
+        dfi['type']=i
+        df.append(dfi)
+    np.random.shuffle(df)
+    while (df[0]['type'][0]!=0)|(df[1]['type'][0]==0)|(df[0]['drift'][0]!=0):
+        np.random.shuffle(df)
+    df = pd.concat(df)
     df.index = range(len(df))
-    df['block'] = df.index.values // len(mu0[0])
+    df['block'] = df.index.values//len(mu0[0])
     return df
 
 
@@ -168,6 +209,9 @@ class PointTotal:
         self.py = pos[1]
         self.total.pos = (self.px*self.units, self.py*self.units)
 
+    def set_points(self, points=0):
+        self.points = points
+
     def draw(self, number=0):
         self.points += number
         self.total.draw()
@@ -211,4 +255,3 @@ class PointWin:
             else:
                 self.digit[each].pos = ((self.px-40*(i-1)) * self.units, (self.py-25) * self.units)
                 self.digit[each].draw()
-
