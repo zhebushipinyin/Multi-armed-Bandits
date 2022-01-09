@@ -26,13 +26,13 @@ w = int(w)
 h = int(h)
 a = w/1280
 
-df = hp.generate()
+df = hp.generate(np.random.default_rng(1234567))
 win = visual.Window(size=(w, h), fullscr=True, units='pix')
 text = visual.TextStim(win, height=36*a, pos=(0, 0), wrapWidth=10000, color='black',bold=True)
 fix = visual.ImageStim(win, image='images/fix.png', size=720*a/20)
 hand = visual.ImageStim(win, image='images/hand.png', size=100*a)
 progress = visual.TextStim(win, height=32*a, pos=(0, 245*a), wrapWidth=10000, color='black')
-v_sound = Sound('sound/spin1.ogg')
+v_sound = Sound('sound/sound.ogg')
 v_gain = Sound('sound/payout1.ogg')
 # assets
 assets = {
@@ -54,6 +54,21 @@ slots = [
 ]
 slots_point = hp.PointTotal(win, assets, units=a)
 stars = visual.ImageStim(win, size=(690*a, 150*a))
+intro = visual.ImageStim(win, size=(w, h))
+myMouse = event.Mouse()
+myMouse.setVisible(0)
+# 介绍
+for i in range(2):
+    intro.image = 'images/intro%s.jpg' % i
+    intro.draw()
+    win.flip()
+    event.waitKeys(keyList=['space'])
+    event.clearEvents()
+text.text = u'按【空格键开始】'
+text.pos = (0, 0)
+text.draw()
+win.flip()
+event.waitKeys(keyList=['space'])
 clk = core.Clock()
 clk.reset()
 results = {
@@ -67,10 +82,7 @@ score = 0
 for block in blocks:
     len_trial = len(df.loc[df.block == block])
     slots_point.set_points(0)
-    means = df.loc[df.block == block, ['arm0_mean', 'arm1_mean', 'arm2_mean']].values
-    drift = df.loc[df.block == block, 'drift'].values.sum()
-    vmax = means.max(axis=1).sum()+drift
-    vmin = means.min(axis=1).sum()+drift
+    scores = df.loc[df.block == block, ['arm0_payoff', 'arm1_payoff', 'arm2_payoff']].values
     for i_ in range(len_trial):
         i = i_+len_trial*block
         progress.text = u'第%s组: %s/%s' % (block+1, i_+1, len_trial)
@@ -85,9 +97,9 @@ for block in blocks:
         win.flip()
         core.wait(0.8)
     points = slots_point.points
-    star_points = hp.get_stars(points, vmax, vmin)
+    star_points = hp.get_stars(points, scores)
     score+=star_points
-    print(points, vmax, vmin, star_points)
+    print(points, star_points)
     win.flip()
     for j in range(star_points+1):
         stars.image = assets['stars'][j]
@@ -106,12 +118,14 @@ for block in blocks:
         text.draw()
         win.flip()
         event.waitKeys(keyList=['space'])
-text.text = u'实验结束, 按【空格键】退出'
+
+text.text = '实验结束!您的得分为: %s/%s'%(score, 5*len(blocks))
 text.pos = (0, 0)
 text.draw()
+# text.text = u'实验结束, 按【空格键】退出'
 win.flip()
 print('实验得分: %s/%s'%(score, 5*len(blocks)))
-event.waitKeys(keyList=['space'])
+event.waitKeys(keyList=['space','left', 'up', 'right', 'q'])
 df['arm']=results['arm']
 df['arm_pos']=results['arm_pos']
 df['reward']=results['reward']

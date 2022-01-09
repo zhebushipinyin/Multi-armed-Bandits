@@ -62,6 +62,7 @@ def trial(i, win, df, slots, pos, clk, sound, slots_point, hand, progress):
             slots_point.draw()
             win.flip()
             key = event.waitKeys(keyList=['left', 'up', 'right', 'q'])
+            sound[0].play()
             if 'left' in key:
                 click = 'L'
             elif 'up' in key:
@@ -71,13 +72,14 @@ def trial(i, win, df, slots, pos, clk, sound, slots_point, hand, progress):
             else:
                 win.close()
                 core.quit()
-            sound[0].play()
+
             w_click = np.where(arm_pos==click)[0][0]
             mean_, std = df.loc[i, ['arm%s_mean'%w_click, 'arm%s_std'%w_click]].values
             mean = drift+mean_
             result['arm'] = w_click
             result['arm_pos'] = arm_pos[w_click]
-            reward = int(np.random.normal(mean, std))
+            # reward = int(np.random.normal(mean, std))
+            reward = df.loc[i, 'arm%s_payoff'%w_click]
             result['reward'] = reward
             result['rt'] = clk.getTime()
             clk.reset()
@@ -90,17 +92,19 @@ def trial(i, win, df, slots, pos, clk, sound, slots_point, hand, progress):
             hand.draw()
             win.flip()
             key = event.waitKeys(keyList=keylist)
+            sound[0].play()
             if 'q' in key:
                 win.close()
                 core.quit()
-            sound[0].play()
+
             w_click = arm
             mean_, std = df.loc[i, ['arm%s_mean'%w_click, 'arm%s_std'%w_click]].values
 
             mean = drift+mean_
             result['arm'] = w_click
             result['arm_pos'] = arm_pos[w_click]
-            reward = int(np.random.normal(mean, std))
+            # reward = int(np.random.normal(mean, std))
+            reward = df.loc[i, 'arm%s_payoff' % w_click]
             # exclude extreme results
             while abs(reward-mean)>=3*std:
                 reward = int(np.random.normal(mean, std))
@@ -110,7 +114,7 @@ def trial(i, win, df, slots, pos, clk, sound, slots_point, hand, progress):
             state = 'draw'
 
         elif state == 'draw':
-            for k in range(10):
+            for k in range(5):
                 for j in range(3):
                     if j != w_click:
                         slots[j].draw(digit=None)
