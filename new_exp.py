@@ -95,7 +95,7 @@ for block in blocks:
         slots_point.draw()
         progress.draw()
         win.flip()
-        core.wait(0.8)
+        core.wait(0.4)
     points = slots_point.points
     star_points = hp.get_stars(points, scores)
     score+=star_points
