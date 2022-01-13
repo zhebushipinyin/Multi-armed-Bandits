@@ -20,13 +20,15 @@ def num2list(x, max_len=3):
 
 
 def get_stars(points, scores):
-    v_max = scores.max(axis=1).sum()
-    v_min = scores.min(axis=1).sum()
+    base = scores[:5].mean()*5
+    v_max = scores[5:].max(axis=1).sum()+base
+    v_min = scores[5:].min(axis=1).sum()+base
     v_random = scores.mean()*len(scores)-30
+    p = np.clip((points-v_random)/(v_max-v_random),0, 1)
     if points<=v_random:
-        return int(np.round(1*((points-v_min)/(v_random-v_min))**0.7))
+        return  np.round(1*((points-v_min)/(v_random-v_min))**0.7)
     else:
-        return int(np.round(4*((points-v_random)/(v_max-v_random)))+1)
+        return np.round(4*p+1)
 
 
 def generate_(mu, std, drift, reward, exp):
