@@ -49,7 +49,7 @@ def generate_(mu, std, drift, reward, exp):
         pos = np.repeat([['L', 'M', 'R']], trial, axis=0)
         list(map(np.random.shuffle, pos))
         s = np.arange(n_arms)
-        np.random.shuffle(s)
+        #np.random.shuffle(s)
         for j in range(n_arms):
             df['arm%s_mean'%j] = payoff_mean[s[j]]
             df['arm%s_std'%j] = payoff_std[s[j]]
